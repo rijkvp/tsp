@@ -34,7 +34,7 @@ fn swap_two_cities(path: &mut [usize], index1: usize, index2: usize) {
     (*path)[index2] = temp;
 }
 
-fn main() {
+fn main_aron() {
     println!("Hey there, welcome to the TSP program by Rijk van Putten and Aron Hardeman");
     //println!("Do you want to use Euclidean positions and distances (y/n)?");
     let mut inp = String::from("y"); //use euclidean positions by default
