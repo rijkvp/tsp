@@ -20,7 +20,7 @@ fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 4 {
         return Err(format!(
-            "You entered {} arguments. Please enter exactly 4!",
+            "You entered {} arguments. Please provide exactly 4!",
             args.len()
         ));
     }
@@ -36,12 +36,12 @@ fn run() -> Result<(), String> {
     let cities = match args[2].trim().to_lowercase().as_str() {
         "in" | "inp" | "input" => Ok(input_cities(count)?),
         "rand" | "random" => Ok(random_cities(count)),
-        _ => Err(format!("'{}' is no valid input mode!", args[1])),
+        _ => Err(format!("'{}' is no valid input mode!", args[2])),
     }?;
     match args[3].trim().to_lowercase().as_str() {
         "an" | "anneal" | "annealing" => Ok(annealing::run_annealing(cities)),
         "bf" | "brute-force" => Ok(brute_force::run_brute_force(cities)),
-        _ => Err(format!("'{}' is no valid input mode!", args[1])),
+        _ => Err(format!("'{}' is no valid input mode!", args[3])),
     }?;
     Ok(())
 }
