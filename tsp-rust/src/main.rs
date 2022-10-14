@@ -3,14 +3,12 @@ mod brute_force;
 mod util;
 
 use rand::Rng;
-use std::env;
+use std::{env, time::Instant};
 
 const MIN_CITIES: usize = 2; //minimum number of cities
 const MAX_CITIES: usize = 50; //maximum number of cities
 
 fn main() {
-    println!("Hey there, welcome to the TSP program by Rijk van Putten and Aron Hardeman");
-
     if let Err(e) = run() {
         eprintln!("Error: {e}");
     }
@@ -38,20 +36,38 @@ fn run() -> Result<(), String> {
         "rand" | "random" => Ok(random_cities(count)),
         _ => Err(format!("'{}' is no valid input mode!", args[2])),
     }?;
-    match args[3].trim().to_lowercase().as_str() {
+
+    let (len, path) = match args[3].trim().to_lowercase().as_str() {
         "an" | "anneal" | "annealing" => Ok(annealing::run_annealing(cities)),
         "bf" | "brute-force" => Ok(brute_force::run_brute_force(cities)),
+        "cmp" | "compare" => {
+            let start_time = Instant::now();
+            let (bf_len, bf_path) = brute_force::run_brute_force(cities.clone());
+            let bf_duration = start_time.elapsed();
+            let (an_len, an_path) = annealing::run_annealing(cities);
+            let an_duration = start_time.elapsed() - bf_duration;
+            println!("==Algorithm Comparison==");
+            println!("Brute-Force:\t{bf_len:.2}\t{bf_path:?}\t{bf_duration:?}");
+            println!("Annealing:  \t{an_len:.2}\t{an_path:?}\t{an_duration:?}");
+            println!("Annealing length: {:.2}%", an_len / bf_len * 100.0);
+            println!(
+                "Annealing time: {:.2}%",
+                an_duration.as_secs_f64() / bf_duration.as_secs_f64() * 100.0
+            );
+            Ok((bf_len, bf_path))
+        }
         _ => Err(format!("'{}' is no valid input mode!", args[3])),
     }?;
+    println!("Length: {len:.2}, Path: {path:?}");
     Ok(())
 }
 
 fn random_cities(count: usize) -> Vec<(f64, f64)> {
     let mut cities: Vec<(f64, f64)> = Vec::with_capacity(count);
-    let mut rand = rand::thread_rng();
+    let mut rng = rand::thread_rng();
     for _ in 0..count {
-        let x = rand.gen_range(-1000.0..1000.0);
-        let y = rand.gen_range(-1000.0..1000.0);
+        let x = rng.gen_range(-1000.0..1000.0);
+        let y = rng.gen_range(-1000.0..1000.0);
         cities.push((x, y));
     }
     cities

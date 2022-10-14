@@ -1,3 +1,8 @@
+/// Calculate the distance between two points
+pub fn dist(a: &(f64, f64), b: &(f64, f64)) -> f64 {
+    dist_sqr(a, b).sqrt()
+}
+
 /// Calculate the squared distance between two points
 pub fn dist_sqr(a: &(f64, f64), b: &(f64, f64)) -> f64 {
     let dx = b.0 - a.0;
