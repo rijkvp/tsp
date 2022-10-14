@@ -2,8 +2,8 @@ mod annealing;
 mod brute_force;
 mod util;
 
-use std::env;
 use rand::Rng;
+use std::env;
 
 const MIN_CITIES: usize = 2; //minimum number of cities
 const MAX_CITIES: usize = 50; //maximum number of cities
@@ -24,7 +24,8 @@ fn run() -> Result<(), String> {
             args.len()
         ));
     }
-    let count: usize = args[1].parse()
+    let count: usize = args[1]
+        .parse()
         .map_err(|e| format!("Please input a number has first argument: {e}"))?;
     if count > MAX_CITIES || count < MIN_CITIES {
         return Err(format!(
@@ -61,10 +62,7 @@ fn input_cities(count: usize) -> Result<Vec<(f64, f64)>, String> {
 
     let mut input = String::new();
     for i in 0..count {
-        println!(
-            "Enter x and y locations of city #{}",
-            i
-        );
+        println!("Enter x and y locations of city #{}", i);
         input.clear();
         std::io::stdin().read_line(&mut input).unwrap();
         let pos: Vec<&str> = input.trim().split(' ').collect();

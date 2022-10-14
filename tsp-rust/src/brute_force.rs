@@ -25,12 +25,12 @@ fn get_permutations(len: usize) -> Vec<Vec<usize>> {
 pub fn run_brute_force(cities: Vec<(f64, f64)>) {
     let mut shortest = f64::MAX;
     let mut path = None;
+    println!("Brute forcing a sulution..");
     for p in get_permutations(cities.len()) {
         let mut len = 0.0;
         for i in 1..p.len() {
             len += util::dist_sqr(&cities[p[i - 1]], &cities[p[i]]);
         }
-        println!("Length of path {p:?}: {:.2}", len.sqrt());
         if len < shortest {
             shortest = len;
             path = Some(p);
