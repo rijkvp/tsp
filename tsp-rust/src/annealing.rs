@@ -3,7 +3,8 @@ use std::f64::consts;
 use crate::util;
 use rand::Rng;
 
-const TEMPERATURE: f64 = 150.0;
+const START_TEMP: f64 = 200.0; // The starting temperature
+const TEMP_MULT: f64 = 0.999; // The multiplier of the temperature after each step
 
 pub fn run_annealing(cities: Vec<(f64, f64)>) -> (f64, Vec<usize>) {
     eprintln!("Annealing..");
@@ -32,6 +33,7 @@ pub fn run_annealing(cities: Vec<(f64, f64)>) -> (f64, Vec<usize>) {
         start_dist += distance[x - 1][x];
     }
 
+    let mut temperature = START_TEMP;
     let mut i = 0;
     let mut curr_path = path;
     let mut curr_dist = start_dist;
@@ -65,7 +67,7 @@ pub fn run_annealing(cities: Vec<(f64, f64)>) -> (f64, Vec<usize>) {
                 true
             } else {
                 // Only accept paths arbitrary according the probability formula
-                let probability = consts::E.powf(delta_e / TEMPERATURE);
+                let probability = consts::E.powf(delta_e / temperature);
                 rng.gen_bool(probability)
             }
         };
@@ -73,6 +75,7 @@ pub fn run_annealing(cities: Vec<(f64, f64)>) -> (f64, Vec<usize>) {
             curr_path = new_path;
             curr_dist = new_dist;
         }
+        temperature *= TEMP_MULT; // Decrease temerature
         i += 1;
     }
     eprintln!("Annealed from {:.2} to {:.2}.", start_dist, curr_dist);
