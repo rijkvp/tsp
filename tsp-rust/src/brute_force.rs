@@ -1,19 +1,13 @@
-use crate::util::dist_sqr;
-
-fn swap(arr: &mut [usize], x: usize, y: usize) {
-    let h = arr[x];
-    arr[x] = arr[y];
-    arr[y] = h;
-}
+use crate::util;
 
 fn permute(arr: &mut [usize], res: &mut Vec<Vec<usize>>, p: usize) {
     if p == arr.len() {
         res.push(arr.to_vec());
     } else {
         for x in p..arr.len() {
-            swap(arr, p, x);
+            util::swap(arr, p, x);
             permute(arr, res, p + 1);
-            swap(arr, p, x);
+            util::swap(arr, p, x);
         }
     }
 }
@@ -34,7 +28,7 @@ pub fn run_brute_force(cities: Vec<(f64, f64)>) {
     for p in get_permutations(cities.len()) {
         let mut len = 0.0;
         for i in 1..p.len() {
-            len += dist_sqr(&cities[p[i - 1]], &cities[p[i]]);
+            len += util::dist_sqr(&cities[p[i - 1]], &cities[p[i]]);
         }
         println!("Length of path {p:?}: {:.2}", len.sqrt());
         if len < shortest {

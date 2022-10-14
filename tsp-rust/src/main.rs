@@ -1,8 +1,9 @@
+mod annealing;
 mod brute_force;
 mod util;
-mod annealing;
 
 use std::env;
+use rand::Rng;
 
 const MIN_CITIES: usize = 2; //minimum number of cities
 const MAX_CITIES: usize = 50; //maximum number of cities
@@ -17,61 +18,67 @@ fn main() {
 
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 3 {
-        return Err(format!("You entered {} arugments. Please enter exactly 3!", args.len()))
+    if args.len() != 4 {
+        return Err(format!(
+            "You entered {} arguments. Please enter exactly 4!",
+            args.len()
+        ));
     }
-    let cities = match args[1].trim().to_lowercase().as_str() {
-        "in" | "inp" | "input" => Ok(input_cities()),
-        "rand" | "random" => Ok(random_cities()),
-        _ => Err(format!("'{}' is no valid input mode!", args[1]))
+    let count: usize = args[1].parse()
+        .map_err(|e| format!("Please input a number has first argument: {e}"))?;
+    if count > MAX_CITIES || count < MIN_CITIES {
+        return Err(format!(
+            "Please enter a number in range {} - {}",
+            MIN_CITIES, MAX_CITIES
+        ));
+    }
+    let cities = match args[2].trim().to_lowercase().as_str() {
+        "in" | "inp" | "input" => Ok(input_cities(count)?),
+        "rand" | "random" => Ok(random_cities(count)),
+        _ => Err(format!("'{}' is no valid input mode!", args[1])),
     }?;
-    match args[2].trim().to_lowercase().as_str() {
+    match args[3].trim().to_lowercase().as_str() {
         "an" | "anneal" | "annealing" => Ok(annealing::run_annealing(cities)),
         "bf" | "brute-force" => Ok(brute_force::run_brute_force(cities)),
-        _ => Err(format!("'{}' is no valid input mode!", args[1]))
+        _ => Err(format!("'{}' is no valid input mode!", args[1])),
     }?;
     Ok(())
 }
 
-fn random_cities() -> Vec<(f64, f64)> {
-    todo!()
+fn random_cities(count: usize) -> Vec<(f64, f64)> {
+    let mut cities: Vec<(f64, f64)> = Vec::with_capacity(count);
+    let mut rand = rand::thread_rng();
+    for _ in 0..count {
+        let x = rand.gen_range(-1000.0..1000.0);
+        let y = rand.gen_range(-1000.0..1000.0);
+        cities.push((x, y));
+    }
+    cities
 }
 
-fn input_cities() -> Vec<(f64, f64)> {
-    println!(
-        "How many cities would you like to have? {} <= n <= {}",
-        MIN_CITIES, MAX_CITIES
-    );
+fn input_cities(count: usize) -> Result<Vec<(f64, f64)>, String> {
+    let mut cities: Vec<(f64, f64)> = Vec::with_capacity(count);
 
     let mut input = String::new();
-    std::io::stdin()
-        .read_line(&mut input)
-        .expect("Woops, could not read your input.");
-
-    let n: usize = input
-        .trim()
-        .parse()
-        .expect("You should type a number, byebye");
-
-    if n > MAX_CITIES || n < MIN_CITIES {
-        eprintln!("Your input is not within the specified bounds.");
-        std::process::exit(1);
-    }
-    let mut cities: Vec<(f64, f64)> = Vec::new();
-
-    for i in 0..n {
+    for i in 0..count {
         println!(
-            "Enter x and y locations of city #{} (separated by a space) and press enter:",
+            "Enter x and y locations of city #{}",
             i
         );
-        std::io::stdin().read_line(&mut input).expect("Input failed");
-        let current_position: Vec<f64> = input
-            .trim()
-            .split(' ')
-            .map(|x| x.parse().expect("input a number please"))
-            .collect();
-        cities.push((current_position[0], current_position[1]));
+        input.clear();
+        std::io::stdin().read_line(&mut input).unwrap();
+        let pos: Vec<&str> = input.trim().split(' ').collect();
+        if pos.len() < 2 {
+            return Err("Please enter two values.".to_string());
+        }
+        let x: f64 = pos[0]
+            .parse()
+            .map_err(|e| format!("Please enter a float: {e}"))?;
+        let y: f64 = pos[1]
+            .parse()
+            .map_err(|e| format!("Please enter a float: {e}"))?;
+        cities.push((x, y));
     }
-    debug_assert!(cities.len() == n);
-    return cities;
+    debug_assert!(cities.len() == count);
+    Ok(cities)
 }
