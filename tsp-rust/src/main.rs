@@ -1,71 +1,77 @@
-struct City {
-    x: f64,
-    y: f64,
-}
+mod brute_force;
+mod util;
+mod annealing;
 
-fn dist_sqr(a: &City, b: &City) -> f64 {
-    let dx = b.x - a.x;
-    let dy = b.y - a.y;
-    dx * dx + dy * dy
-}
+use std::env;
 
-fn swap(arr: &mut [usize], x: usize, y: usize) {
-    let h = arr[x];
-    arr[x] = arr[y];
-    arr[y] = h;
-}
-
-fn permute(arr: &mut [usize], res: &mut Vec<Vec<usize>>, p: usize) {
-    if p == arr.len() {
-        res.push(arr.to_vec());
-    } else {
-        for x in p..arr.len() {
-            swap(arr, p, x);
-            permute(arr, res, p + 1);
-            swap(arr, p, x);
-        }
-    }
-}
-
-fn get_permutations(len: usize) -> Vec<Vec<usize>> {
-    let mut arr = Vec::with_capacity(len);
-    for i in 0..len {
-        arr.push(i);
-    }
-    let mut res = Vec::new();
-    permute(&mut arr, &mut res, 0);
-    return res;
-}
+const MIN_CITIES: usize = 2; //minimum number of cities
+const MAX_CITIES: usize = 50; //maximum number of cities
 
 fn main() {
-    let cities = vec![
-        City { x: 250.0, y: 100.0 },
-        City {
-            x: 150.0,
-            y: -200.0,
-        },
-        City {
-            x: -100.0,
-            y: 150.0,
-        },
-        City {
-            x: -50.0,
-            y: -100.0,
-        },
-    ];
-    let mut shortest = f64::MAX;
-    let mut path = None;
-    for p in get_permutations(cities.len()) {
-        let mut len = 0.0;
-        for i in 1..p.len() {
-            len += dist_sqr(&cities[p[i - 1]], &cities[p[i]]);
-        }
-        println!("Length of path {p:?}: {:.2}", len.sqrt());
-        if len < shortest {
-            shortest = len;
-            path = Some(p);
-        }
+    println!("Hey there, welcome to the TSP program by Rijk van Putten and Aron Hardeman");
+
+    if let Err(e) = run() {
+        eprintln!("Error: {e}");
     }
-    let len = shortest.sqrt();
-    println!("Shortest path {:?} has a length of {len:.2}", path.unwrap());
+}
+
+fn run() -> Result<(), String> {
+    let args: Vec<String> = env::args().collect();
+    if args.len() != 3 {
+        return Err(format!("You entered {} arugments. Please enter exactly 3!", args.len()))
+    }
+    let cities = match args[1].trim().to_lowercase().as_str() {
+        "in" | "inp" | "input" => Ok(input_cities()),
+        "rand" | "random" => Ok(random_cities()),
+        _ => Err(format!("'{}' is no valid input mode!", args[1]))
+    }?;
+    match args[2].trim().to_lowercase().as_str() {
+        "an" | "anneal" | "annealing" => Ok(annealing::run_annealing(cities)),
+        "bf" | "brute-force" => Ok(brute_force::run_brute_force(cities)),
+        _ => Err(format!("'{}' is no valid input mode!", args[1]))
+    }?;
+    Ok(())
+}
+
+fn random_cities() -> Vec<(f64, f64)> {
+    todo!()
+}
+
+fn input_cities() -> Vec<(f64, f64)> {
+    println!(
+        "How many cities would you like to have? {} <= n <= {}",
+        MIN_CITIES, MAX_CITIES
+    );
+
+    let mut input = String::new();
+    std::io::stdin()
+        .read_line(&mut input)
+        .expect("Woops, could not read your input.");
+
+    let n: usize = input
+        .trim()
+        .parse()
+        .expect("You should type a number, byebye");
+
+    if n > MAX_CITIES || n < MIN_CITIES {
+        eprintln!("Your input is not within the specified bounds.");
+        std::process::exit(1);
+    }
+    let mut cities: Vec<(f64, f64)> = Vec::new();
+
+    for i in 0..n {
+        println!(
+            "Enter x and y locations of city #{} (separated by a space) and press enter:",
+            i
+        );
+        std::io::stdin().read_line(&mut input).expect("Input failed");
+        let current_position: Vec<f64> = input
+            .trim()
+            .split(' ')
+            .map(|x| x.parse().expect("input a number please"))
+            .collect();
+        cities.push((current_position[0], current_position[1]));
+    }
+    debug_assert!(cities.len() == n);
+    return cities;
 }

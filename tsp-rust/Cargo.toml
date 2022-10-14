@@ -8,3 +8,6 @@ lto = true
 strip = true
 codegen-units = 1
 opt-level = 3
+
+[dependencies]
+rand = "0.8"
