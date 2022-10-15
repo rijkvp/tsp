@@ -2,11 +2,13 @@ mod annealing;
 mod brute_force;
 mod util;
 
+use crate::annealing::Params;
 use rand::Rng;
 use std::{env, time::Instant};
 
 const MIN_CITIES: usize = 2; //minimum number of cities
 const MAX_CITIES: usize = 50; //maximum number of cities
+const AREA_SIZE: f64 = 1000.0;
 
 fn main() {
     if let Err(e) = run() {
@@ -37,14 +39,20 @@ fn run() -> Result<(), String> {
         _ => Err(format!("'{}' is no valid input mode!", args[2])),
     }?;
 
-    let (len, path) = match args[3].trim().to_lowercase().as_str() {
-        "an" | "anneal" | "annealing" => Ok(annealing::run_annealing(cities)),
-        "bf" | "brute-force" => Ok(brute_force::run_brute_force(cities)),
+    match args[3].trim().to_lowercase().as_str() {
+        "an" | "anneal" | "annealing" => {
+            let (len, path) = annealing::run_annealing(cities, Params::default());
+            println!("Length: {len:.2}, Path: {path:?}");
+        }
+        "bf" | "brute-force" => {
+            let (len, path) = brute_force::run_brute_force(cities);
+            println!("Length: {len:.2}, Path: {path:?}");
+        }
         "cmp" | "compare" => {
             let start_time = Instant::now();
             let (bf_len, bf_path) = brute_force::run_brute_force(cities.clone());
             let bf_duration = start_time.elapsed();
-            let (an_len, an_path) = annealing::run_annealing(cities);
+            let (an_len, an_path) = annealing::run_annealing(cities, Params::default());
             let an_duration = start_time.elapsed() - bf_duration;
             println!("==Algorithm Comparison==");
             println!("Brute-Force:\t{bf_len:.2}\t{bf_path:?}\t{bf_duration:?}");
@@ -54,11 +62,38 @@ fn run() -> Result<(), String> {
                 "Annealing time: {:.2}%",
                 an_duration.as_secs_f64() / bf_duration.as_secs_f64() * 100.0
             );
-            Ok((bf_len, bf_path))
         }
-        _ => Err(format!("'{}' is no valid input mode!", args[3])),
-    }?;
-    println!("Length: {len:.2}, Path: {path:?}");
+        "test" => {
+            fn rand_param() -> Params {
+                let mut rng = rand::thread_rng();
+                Params {
+                    start_temp: rng.gen_range(0.0..10.0),
+                    temp_mult: rng.gen_range(0.9..0.999),
+                    max_iter: rng.gen_range(1000..100000),
+                    max_nodecrease: rng.gen_range(10..100),
+                }
+            }
+            let (bf_len, bf_path) = brute_force::run_brute_force(cities.clone());
+            let mut best_len = f64::MAX;
+            let mut best_param;
+            let mut best_path;
+            loop {
+                let param = rand_param();
+                let (len, path) = annealing::run_annealing(cities.clone(), param);
+                if len <= best_len {
+                    best_len = len;
+                    best_param = param;
+                    best_path = path;
+                    let score = (bf_len / len) * 100.0;
+                    println!(
+                        "{score:.1}%\tlength={:.2}\tparam={:?}\tpath=\t{:?}\top={:.2}\tbest={:?}\t",
+                        best_len, best_param, best_path, bf_len, bf_path
+                    );
+                }
+            }
+        }
+        _ => return Err(format!("'{}' is no valid input mode!", args[3])),
+    };
     Ok(())
 }
 
@@ -66,8 +101,8 @@ fn random_cities(count: usize) -> Vec<(f64, f64)> {
     let mut cities: Vec<(f64, f64)> = Vec::with_capacity(count);
     let mut rng = rand::thread_rng();
     for _ in 0..count {
-        let x = rng.gen_range(-1000.0..1000.0);
-        let y = rng.gen_range(-1000.0..1000.0);
+        let x = rng.gen_range(-AREA_SIZE..AREA_SIZE);
+        let y = rng.gen_range(-AREA_SIZE..AREA_SIZE);
         cities.push((x, y));
     }
     cities

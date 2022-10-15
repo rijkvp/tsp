@@ -3,11 +3,26 @@ use std::f64::consts;
 use crate::util;
 use rand::Rng;
 
-const START_TEMP: f64 = 200.0; // The starting temperature
-const TEMP_MULT: f64 = 0.999; // The multiplier of the temperature after each step
+#[derive(Debug, Copy, Clone)]
+pub struct Params {
+    pub start_temp: f64,       // The starting temperature
+    pub temp_mult: f64,        // The temperature multiplier
+    pub max_iter: usize,       // Maximum iterations
+    pub max_nodecrease: usize, // Maximum iterations without energy decrease
+}
 
-pub fn run_annealing(cities: Vec<(f64, f64)>) -> (f64, Vec<usize>) {
-    eprintln!("Annealing..");
+impl Default for Params {
+    fn default() -> Self {
+        Self {
+            start_temp: 200.0,
+            temp_mult: 0.99,
+            max_iter: 10000,
+            max_nodecrease: 200,
+        }
+    }
+}
+
+pub fn run_annealing(cities: Vec<(f64, f64)>, param: Params) -> (f64, Vec<usize>) {
     let mut rng = rand::thread_rng();
     let n = cities.len();
 
@@ -20,26 +35,26 @@ pub fn run_annealing(cities: Vec<(f64, f64)>) -> (f64, Vec<usize>) {
         }
     }
 
-    // Initialize the path
-    // TODO: Should we also randomize the path before starting?
-    let mut path: Vec<usize> = vec![usize::MAX; n];
+    // Initialize a random path
+    let mut path: Vec<usize> = Vec::with_capacity(n);
     for i in 0..n {
-        path[i] = i as usize;
+        let rand_index = rng.gen_range(0..path.len() + 1);
+        path.insert(rand_index, i)
     }
 
     let mut start_dist = 0.0;
-    for i in 1..n {
-        let x = path[i];
-        start_dist += distance[x - 1][x];
+    for i in 0..n {
+        start_dist += distance[path[i]][path[(i + 1) % (n - 1)]];
     }
 
-    let mut temperature = START_TEMP;
+    let mut temperature = param.start_temp;
     let mut i = 0;
+    let mut last_decrease = 0;
     let mut curr_path = path;
     let mut curr_dist = start_dist;
     loop {
-        // Quit after a certain amount of iterations
-        if i > 10000 {
+        // Check for stop conditions
+        if i > param.max_iter || i - last_decrease > param.max_nodecrease {
             break;
         }
         // Apply a random action to the path
@@ -51,12 +66,8 @@ pub fn run_annealing(cities: Vec<(f64, f64)>) -> (f64, Vec<usize>) {
         };
         // Calculate the distance of the new path
         let mut new_dist = 0.0;
-        for i in 1..n {
-            let x = new_path[i];
-            let y = new_path[i - 1];
-            if x > 0 {
-                new_dist += distance[x][y];
-            }
+        for i in 0..n {
+            new_dist += distance[new_path[i]][new_path[(i + 1) % (n - 1)]];
         }
 
         // Difference in energy level is the difference in distance
@@ -74,11 +85,15 @@ pub fn run_annealing(cities: Vec<(f64, f64)>) -> (f64, Vec<usize>) {
         if accept {
             curr_path = new_path;
             curr_dist = new_dist;
+            last_decrease = i;
         }
-        temperature *= TEMP_MULT; // Decrease temerature
+        temperature *= param.temp_mult; // Decrease temerature
         i += 1;
     }
-    eprintln!("Annealed from {:.2} to {:.2}.", start_dist, curr_dist);
+    // eprintln!(
+    //     "Annealed from {:.2} to {:.2}. T={:.4}",
+    //     start_dist, curr_dist, temperature
+    // );
     return (curr_dist, curr_path);
 }
 

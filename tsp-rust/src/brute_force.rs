@@ -23,11 +23,10 @@ fn get_permutations(len: usize) -> Vec<Vec<usize>> {
 }
 
 pub fn run_brute_force(cities: Vec<(f64, f64)>) -> (f64, Vec<usize>) {
-    eprintln!("Brute forcing..");
     let mut shortest = f64::MAX;
     let mut path = None;
     let permutations = get_permutations(cities.len());
-    eprintln!("Comparing {} permutations..", permutations.len());
+    //eprintln!("Comparing {} permutations..", permutations.len());
     for p in permutations {
         let mut len = 0.0;
         for i in 1..p.len() {
