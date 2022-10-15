@@ -44,24 +44,19 @@ fn run() -> Result<(), String> {
             let (len, path) = annealing::run_annealing(cities, Params::default());
             println!("Length: {len:.2}, Path: {path:?}");
         }
+        "anc" | "anneal_custom" | "annealing_custom" => { //annealing with user-inputted start parameters
+            let (len, path) = annealing::run_annealing(cities, annealing::user_input_params());
+            println!("Length: {len:.2}, Path: {path:?}");
+        }
         "bf" | "brute-force" => {
             let (len, path) = brute_force::run_brute_force(cities);
             println!("Length: {len:.2}, Path: {path:?}");
         }
         "cmp" | "compare" => {
-            let start_time = Instant::now();
-            let (bf_len, bf_path) = brute_force::run_brute_force(cities.clone());
-            let bf_duration = start_time.elapsed();
-            let (an_len, an_path) = annealing::run_annealing(cities, Params::default());
-            let an_duration = start_time.elapsed() - bf_duration;
-            println!("==Algorithm Comparison==");
-            println!("Brute-Force:\t{bf_len:.2}\t{bf_path:?}\t{bf_duration:?}");
-            println!("Annealing:  \t{an_len:.2}\t{an_path:?}\t{an_duration:?}");
-            println!("Annealing length: {:.2}%", an_len / bf_len * 100.0);
-            println!(
-                "Annealing time: {:.2}%",
-                an_duration.as_secs_f64() / bf_duration.as_secs_f64() * 100.0
-            );
+            compare(cities, true);
+        }
+        "cmpc" | "compare_custom" => {
+            compare(cities, false);
         }
         "test" => {
             fn rand_param() -> Params {
@@ -95,6 +90,37 @@ fn run() -> Result<(), String> {
         _ => return Err(format!("'{}' is no valid input mode!", args[3])),
     };
     Ok(())
+}
+
+fn compare(cities: Vec<(f64, f64)>, use_default: bool) {
+
+    //first do the simulated annealing
+    let an_duration;
+    let (an_len, an_path);
+    if use_default {
+        let start_time_an = Instant::now();
+        (an_len, an_path) = annealing::run_annealing(cities.clone(), Params::default());
+        an_duration = start_time_an.elapsed();
+    } else {
+        let user_params = annealing::user_input_params();
+        let start_time_an = Instant::now();
+        (an_len, an_path) = annealing::run_annealing(cities.clone(), user_params);
+        an_duration = start_time_an.elapsed();
+    }
+
+    //now do the brute force
+    let start_time_bf = Instant::now();
+    let (bf_len, bf_path) = brute_force::run_brute_force(cities.clone());
+    let bf_duration = start_time_bf.elapsed();
+
+    println!("==Algorithm Comparison==");
+    println!("Brute-Force:\t{bf_len:.2}\t{bf_path:?}\t{bf_duration:?}");
+    println!("Annealing:  \t{an_len:.2}\t{an_path:?}\t{an_duration:?}");
+    println!("Annealing length: {:.2}%", an_len / bf_len * 100.0);
+    println!(
+        "Annealing time: {:.2}%",
+        an_duration.as_secs_f64() / bf_duration.as_secs_f64() * 100.0
+    );
 }
 
 fn random_cities(count: usize) -> Vec<(f64, f64)> {

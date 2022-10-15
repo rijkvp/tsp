@@ -1,4 +1,5 @@
 use std::f64::consts;
+use std::io::Write;
 
 use crate::util;
 use rand::Rng;
@@ -20,6 +21,34 @@ impl Default for Params {
             max_nodecrease: 200,
         }
     }
+}
+
+pub fn user_input_params() -> Params {
+    fn read_number() -> f64 {
+        let mut inp = String::new();
+        std::io::stdin()
+            .read_line(&mut inp)
+            .expect("Input could not be read.");
+        let n: f64 = inp
+            .trim()
+            .parse()
+            .expect("Expected a number");
+        n
+    }
+    let mut user_params = Params::default();
+    print!("Starting temperature: ");
+    std::io::stdout().flush().unwrap();
+    user_params.start_temp = read_number();
+    print!("Temperature multiplier after each step: ");
+    std::io::stdout().flush().unwrap();
+    user_params.temp_mult = read_number();
+    print!("Maximum number of iterations: ");
+    std::io::stdout().flush().unwrap();
+    user_params.max_iter = read_number() as usize;
+    print!("Maximum number of iterations without decrease: ");
+    std::io::stdout().flush().unwrap();
+    user_params.max_nodecrease = read_number() as usize;
+    user_params
 }
 
 pub fn run_annealing(cities: Vec<(f64, f64)>, param: Params) -> (f64, Vec<usize>) {
