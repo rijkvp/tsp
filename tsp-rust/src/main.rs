@@ -44,7 +44,7 @@ fn run() -> Result<(), String> {
         "an" | "anneal" | "annealing" => {
             let (len, path) = annealing::run_annealing(cities.clone(), Params::default());
             println!("Length: {len:.2}, Path: {path:?}");
-            visualize::visualize(cities, path);
+            visualize::visualize("Annealing Path", cities, path);
         }
         "anc" | "anneal_custom" | "annealing_custom" => {
             //annealing with user-inputted start parameters
@@ -52,8 +52,9 @@ fn run() -> Result<(), String> {
             println!("Length: {len:.2}, Path: {path:?}");
         }
         "bf" | "brute-force" => {
-            let (len, path) = brute_force::run_brute_force(cities);
+            let (len, path) = brute_force::run_brute_force(cities.clone());
             println!("Length: {len:.2}, Path: {path:?}");
+            visualize::visualize("Brute-force path", cities, path);
         }
         "cmp" | "compare" => {
             compare(cities, true);
@@ -78,7 +79,7 @@ fn run() -> Result<(), String> {
             loop {
                 let param = rand_param();
                 let (len, path) = annealing::run_annealing(cities.clone(), param);
-                if len <= best_len {
+                if len < best_len {
                     best_len = len;
                     best_param = param;
                     best_path = path;
@@ -123,6 +124,9 @@ fn compare(cities: Vec<(f64, f64)>, use_default: bool) {
         "Annealing time: {:.2}%",
         an_duration.as_secs_f64() / bf_duration.as_secs_f64() * 100.0
     );
+    let cities = cities.clone();
+    visualize::visualize("Brute-force path", cities.clone(), bf_path);
+    visualize::visualize("Annealing path", cities, an_path);
 }
 
 fn random_cities(count: usize) -> Vec<(f64, f64)> {

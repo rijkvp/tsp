@@ -73,7 +73,7 @@ pub fn run_annealing(cities: Vec<(f64, f64)>, param: Params) -> (f64, Vec<usize>
 
     let mut start_dist = 0.0;
     for i in 0..n {
-        start_dist += distance[path[i]][path[(i + 1) % (n - 1)]];
+        start_dist += distance[path[i]][path[(i + 1) % n]];
     }
 
     let mut temperature = param.start_temp;
@@ -96,7 +96,9 @@ pub fn run_annealing(cities: Vec<(f64, f64)>, param: Params) -> (f64, Vec<usize>
         // Calculate the distance of the new path
         let mut new_dist = 0.0;
         for i in 0..n {
-            new_dist += distance[new_path[i]][new_path[(i + 1) % (n - 1)]];
+            let x = new_path[i];
+            let y = new_path[(i + 1) % n];
+            new_dist += distance[x][y];
         }
 
         // Difference in energy level is the difference in distance
