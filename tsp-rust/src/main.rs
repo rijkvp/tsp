@@ -9,7 +9,7 @@ use std::{env, time::Instant};
 
 const MIN_CITIES: usize = 2; //minimum number of cities
 const MAX_CITIES: usize = 50; //maximum number of cities
-const AREA_SIZE: f64 = 1000.0;
+pub const AREA_SIZE: f64 = 500.0;
 
 fn main() {
     if let Err(e) = run() {
