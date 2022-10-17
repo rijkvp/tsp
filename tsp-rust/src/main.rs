@@ -47,7 +47,6 @@ fn run() -> Result<(), String> {
             visualize::visualize("Annealing Path", cities, path);
         }
         "anc" | "anneal_custom" | "annealing_custom" => {
-            //annealing with user-inputted start parameters
             let (len, path) = annealing::run_annealing(cities, annealing::user_input_params());
             println!("Length: {len:.2}, Path: {path:?}");
         }
@@ -62,36 +61,28 @@ fn run() -> Result<(), String> {
         "cmpc" | "compare_custom" => {
             compare(cities, false);
         }
-        "test" => {
-            fn rand_param() -> Params {
-                let mut rng = rand::thread_rng();
-                Params {
-                    start_temp: rng.gen_range(0.0..10.0),
-                    temp_mult: rng.gen_range(0.9..0.999),
-                    max_iter: rng.gen_range(1000..100000),
-                    max_nodecrease: rng.gen_range(10..100),
-                }
-            }
-            let (bf_len, bf_path) = brute_force::run_brute_force(cities.clone());
+        "find_param" => {
+            const SAMPLES: usize = 100;
+            let mut rng = rand::thread_rng();
             let mut best_len = f64::MAX;
-            let mut best_param;
-            let mut best_path;
             loop {
-                let param = rand_param();
-                let (len, path) = annealing::run_annealing(cities.clone(), param);
-                if len < best_len {
-                    best_len = len;
-                    best_param = param;
-                    best_path = path;
-                    let score = (bf_len / len) * 100.0;
-                    println!(
-                        "{score:.1}%\tlength={:.2}\tparam={:?}\tpath=\t{:?}\top={:.2}\tbest={:?}\t",
-                        best_len, best_param, best_path, bf_len, bf_path
-                    );
+                let param = Params {
+                    temp_mult: rng.gen_range(0.9..0.999),
+                    ..Default::default()
+                };
+                let mut sum = 0.0;
+                for _ in 0..SAMPLES {
+                    let (len, _path) = annealing::run_annealing(random_cities(count), param);
+                    sum += len;
+                }
+                let avg_len = sum / SAMPLES as f64;
+                if avg_len <= best_len {
+                    best_len = avg_len;
+                    println!("{:.2}\t{:?}", best_len, param);
                 }
             }
         }
-        _ => return Err(format!("'{}' is no valid input mode!", args[3])),
+        _ => return Err(format!("'{}' is no valid mode!", args[3])),
     };
     Ok(())
 }

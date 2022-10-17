@@ -1,25 +1,39 @@
+use core::fmt;
 use std::f64::consts;
 use std::io::Write;
 
 use crate::util;
 use rand::Rng;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone)]
 pub struct Params {
-    pub start_temp: f64,       // The starting temperature
-    pub temp_mult: f64,        // The temperature multiplier
-    pub max_iter: usize,       // Maximum iterations
-    pub max_nodecrease: usize, // Maximum iterations without energy decrease
+    /// Multiplier of the temperature: usually between 0.9 and 0.999
+    pub temp_mult: f64,
+    /// Maximum steps
+    pub max_steps: usize,
+    /// How many candidates to pick each step
+    pub candidates: usize,
+    // Maximum steps without energy decrease before stopping
+    pub max_nodecrease: usize,
 }
 
 impl Default for Params {
     fn default() -> Self {
         Self {
-            start_temp: 200.0,
-            temp_mult: 0.99,
-            max_iter: 10000,
+            temp_mult: 0.95,
+            candidates: 500,
+            max_steps: 10000,
             max_nodecrease: 200,
         }
+    }
+}
+
+impl fmt::Debug for Params {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!(
+            "TM: {}\tM: {}\tD={}",
+            self.temp_mult, self.max_steps, self.max_nodecrease
+        ))
     }
 }
 
@@ -29,22 +43,16 @@ pub fn user_input_params() -> Params {
         std::io::stdin()
             .read_line(&mut inp)
             .expect("Input could not be read.");
-        let n: f64 = inp
-            .trim()
-            .parse()
-            .expect("Expected a number");
+        let n: f64 = inp.trim().parse().expect("Expected a number");
         n
     }
     let mut user_params = Params::default();
-    print!("Starting temperature: ");
-    std::io::stdout().flush().unwrap();
-    user_params.start_temp = read_number();
     print!("Temperature multiplier after each step: ");
     std::io::stdout().flush().unwrap();
     user_params.temp_mult = read_number();
-    print!("Maximum number of iterations: ");
+    print!("Maximum number of steps: ");
     std::io::stdout().flush().unwrap();
-    user_params.max_iter = read_number() as usize;
+    user_params.max_steps = read_number() as usize;
     print!("Maximum number of iterations without decrease: ");
     std::io::stdout().flush().unwrap();
     user_params.max_nodecrease = read_number() as usize;
@@ -76,55 +84,53 @@ pub fn run_annealing(cities: Vec<(f64, f64)>, param: Params) -> (f64, Vec<usize>
         start_dist += distance[path[i]][path[(i + 1) % n]];
     }
 
-    let mut temperature = param.start_temp;
+    let mut temperature = 1.0;
     let mut i = 0;
     let mut last_decrease = 0;
     let mut curr_path = path;
     let mut curr_dist = start_dist;
     loop {
         // Check for stop conditions
-        if i > param.max_iter || i - last_decrease > param.max_nodecrease {
+        if i > param.max_steps || i - last_decrease > param.max_nodecrease {
             break;
         }
-        // Apply a random action to the path
-        let new_path = match rng.gen_range(0..2) {
-            0 => swap_cities(&curr_path),
-            1 => invert_section(&curr_path),
-            2 => shift(&curr_path),
-            _ => panic!(),
-        };
-        // Calculate the distance of the new path
-        let mut new_dist = 0.0;
-        for i in 0..n {
-            let x = new_path[i];
-            let y = new_path[(i + 1) % n];
-            new_dist += distance[x][y];
-        }
-
-        // Difference in energy level is the difference in distance
-        let delta_e = curr_dist - new_dist;
-        let accept = {
-            if delta_e >= 0.0 {
-                // Always accept a smaller paths with a lower energy level
-                true
-            } else {
-                // Only accept paths arbitrary according the probability formula
-                let probability = consts::E.powf(delta_e / temperature);
-                rng.gen_bool(probability)
+        for _ in 0..param.candidates {
+            // Apply a random action to the path
+            let new_path = match rng.gen_range(0..2) {
+                0 => swap_cities(&curr_path),
+                1 => invert_section(&curr_path),
+                2 => shift(&curr_path),
+                _ => panic!(),
+            };
+            // Calculate the distance of the new path
+            let mut new_dist = 0.0;
+            for i in 0..n {
+                let x = new_path[i];
+                let y = new_path[(i + 1) % n];
+                new_dist += distance[x][y];
             }
-        };
-        if accept {
-            curr_path = new_path;
-            curr_dist = new_dist;
-            last_decrease = i;
+
+            // Difference in energy level is the difference in distance
+            let delta_e = curr_dist - new_dist;
+            let accept = {
+                if delta_e >= 0.0 {
+                    // Always accept a smaller paths with a lower energy level
+                    true
+                } else {
+                    // Only accept paths arbitrary according the probability formula
+                    let probability = consts::E.powf(delta_e / temperature);
+                    rng.gen_bool(probability)
+                }
+            };
+            if accept {
+                curr_path = new_path;
+                curr_dist = new_dist;
+                last_decrease = i;
+            }
         }
         temperature *= param.temp_mult; // Decrease temerature
         i += 1;
     }
-    // eprintln!(
-    //     "Annealed from {:.2} to {:.2}. T={:.4}",
-    //     start_dist, curr_dist, temperature
-    // );
     return (curr_dist, curr_path);
 }
 
