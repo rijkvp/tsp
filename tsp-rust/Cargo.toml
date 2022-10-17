@@ -11,3 +11,4 @@ opt-level = 3
 
 [dependencies]
 rand = "0.8"
+speedy2d = "1.8"

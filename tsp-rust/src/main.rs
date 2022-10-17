@@ -1,6 +1,7 @@
 mod annealing;
 mod brute_force;
 mod util;
+mod visualize;
 
 use crate::annealing::Params;
 use rand::Rng;
@@ -41,10 +42,12 @@ fn run() -> Result<(), String> {
 
     match args[3].trim().to_lowercase().as_str() {
         "an" | "anneal" | "annealing" => {
-            let (len, path) = annealing::run_annealing(cities, Params::default());
+            let (len, path) = annealing::run_annealing(cities.clone(), Params::default());
             println!("Length: {len:.2}, Path: {path:?}");
+            visualize::visualize(cities, path);
         }
-        "anc" | "anneal_custom" | "annealing_custom" => { //annealing with user-inputted start parameters
+        "anc" | "anneal_custom" | "annealing_custom" => {
+            //annealing with user-inputted start parameters
             let (len, path) = annealing::run_annealing(cities, annealing::user_input_params());
             println!("Length: {len:.2}, Path: {path:?}");
         }
@@ -93,7 +96,6 @@ fn run() -> Result<(), String> {
 }
 
 fn compare(cities: Vec<(f64, f64)>, use_default: bool) {
-
     //first do the simulated annealing
     let an_duration;
     let (an_len, an_path);
