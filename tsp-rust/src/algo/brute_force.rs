@@ -1,3 +1,4 @@
+use super::TspAlgorithm;
 use crate::util;
 
 pub struct BruteForce {
@@ -8,8 +9,8 @@ pub struct BruteForce {
     path: Option<Vec<usize>>,
 }
 
-impl BruteForce {
-    pub fn new(cities: Vec<(f64, f64)>) -> BruteForce {
+impl TspAlgorithm for BruteForce {
+    fn init(cities: Vec<(f64, f64)>) -> BruteForce {
         let permutations = get_permutations(cities.len());
         Self {
             cities,
@@ -20,15 +21,15 @@ impl BruteForce {
         }
     }
 
-    pub fn run(mut self) -> (f64, Vec<usize>) {
-        loop {
-            if self.step() {
-                return (self.length, self.path.unwrap());
-            }
-        }
+    fn state(&self) -> (f64, &Vec<usize>, String) {
+        (
+            self.length,
+            self.path.as_ref().unwrap(),
+            format!("P: {}/{}", self.index, self.permutations.len()),
+        )
     }
 
-    pub fn step(&mut self) -> bool {
+    fn step(&mut self) -> bool {
         let p = &self.permutations[self.index];
         let mut new_length = 0.0;
         for i in 0..p.len() {

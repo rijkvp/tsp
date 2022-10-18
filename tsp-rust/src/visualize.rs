@@ -3,31 +3,37 @@ use speedy2d::font::{Font, TextLayout, TextOptions};
 use speedy2d::shape::Rectangle;
 use speedy2d::window::{KeyScancode, VirtualKeyCode, WindowHandler, WindowHelper};
 use speedy2d::{Graphics2D, Window};
-use std::thread;
-use std::time::Duration;
 
-use crate::annealing::{Annealing, Params};
+use crate::algo::TspAlgorithm;
 
 const PADDING: f32 = 26.0;
 
-pub struct Visualizer {
+pub struct Visualizer<T: TspAlgorithm> {
     cities: Vec<(f64, f64)>,
     path: Option<Vec<usize>>,
-    annealing: Annealing,
+    state: T,
+    running: bool,
+    steps_per_frame: usize,
     show_numbers: bool,
+    status: String,
+    length: f64,
     font: Font,
 }
 
-impl Visualizer {
+impl<T: TspAlgorithm + 'static> Visualizer<T> {
     pub fn new(cities: Vec<(f64, f64)>) -> Self {
         let bytes = include_bytes!("../res/RobotoMono-Bold.ttf");
         let font = Font::new(bytes).unwrap();
-        let annealing = Annealing::new(cities.clone(), Params::default());
+        let state = T::init(cities.clone());
         Self {
             cities,
             path: None,
-            annealing,
+            state,
+            running: true,
+            steps_per_frame: 10,
             show_numbers: false,
+            status: String::new(),
+            length: 0.0,
             font,
         }
     }
@@ -46,26 +52,6 @@ impl Visualizer {
     }
 }
 
-// pub fn visualize(title: &str, cities: Vec<(f64, f64)>, path: Vec<usize>) {
-//     let window = Window::new_centered(
-//         title,
-//         (
-//             (2.0 * PADDING as f64 + crate::AREA_SIZE) as u32,
-//             (2.0 * PADDING as f64 + crate::AREA_SIZE) as u32,
-//         ),
-//     )
-//     .unwrap();
-
-//     let bytes = include_bytes!("../res/RobotoMono-Bold.ttf");
-//     let font = Font::new(bytes).unwrap();
-//     window.run_loop(Visualizer {
-//         cities,
-//         path,
-//         font,
-//         show_numbers: false,
-//     });
-// }
-
 fn transform_position(i: (f64, f64)) -> (f32, f32) {
     (
         PADDING + ((i.0 + crate::AREA_SIZE) / 2.0) as f32,
@@ -73,11 +59,20 @@ fn transform_position(i: (f64, f64)) -> (f32, f32) {
     )
 }
 
-impl WindowHandler for Visualizer {
+impl<T: TspAlgorithm> WindowHandler for Visualizer<T> {
     fn on_draw(&mut self, helper: &mut WindowHelper, graphics: &mut Graphics2D) {
-        self.annealing.step();
-        let (_, path) = self.annealing.get();
-        self.path = Some(path.to_vec());
+        if self.running {
+            for _ in 0..self.steps_per_frame {
+                if self.state.step() {
+                    self.running = false;
+                    break;
+                }
+            }
+            let (length, path, status) = self.state.state();
+            self.path = Some(path.to_vec());
+            self.length = length;
+            self.status = status;
+        }
 
         graphics.clear_screen(Color::from_gray(0.8));
         graphics.draw_rectangle(
@@ -112,8 +107,20 @@ impl WindowHandler for Visualizer {
                 graphics.draw_text((pos.0 - 9.0, pos.1 - 9.0), Color::BLACK, &block);
             }
         }
-        thread::sleep(Duration::from_millis(50));
-        helper.request_redraw();
+
+        let block = self
+            .font
+            .layout_text(&self.status, 28.0, TextOptions::new());
+        graphics.draw_text((PADDING, 0.0), Color::BLACK, &block);
+        let block = self.font.layout_text(
+            &format!("Length: {:.1}", self.length),
+            28.0,
+            TextOptions::new(),
+        );
+        graphics.draw_text((PADDING, 500.0), Color::BLACK, &block);
+        if self.running {
+            helper.request_redraw();
+        }
     }
 
     fn on_key_down(

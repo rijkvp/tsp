@@ -1,7 +1,7 @@
-use std::f64::consts;
-
+use super::TspAlgorithm;
 use crate::util;
 use rand::Rng;
+use std::f64::consts;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Params {
@@ -20,8 +20,8 @@ impl Default for Params {
         Self {
             temp_mult: 0.95,
             candidates: 500,
-            max_steps: 10000,
-            max_nodecrease: 200,
+            max_steps: 500,
+            max_nodecrease: 50,
         }
     }
 }
@@ -31,6 +31,7 @@ pub struct Annealing {
     distance: Vec<Vec<f64>>,
     temperature: f64,
     step: usize,
+    candidate: usize,
     last_decrease: usize,
     path: Vec<usize>,
     length: f64,
@@ -66,34 +67,34 @@ impl Annealing {
             distance,
             temperature: 1.0,
             step: 0,
+            candidate: 0,
             last_decrease: 0,
             path,
             length,
         }
     }
+}
 
-    pub fn run(mut self) -> (f64, Vec<usize>) {
-        loop {
-            if self.step() {
-                return (self.length, self.path);
-            }
-        }
+impl TspAlgorithm for Annealing {
+    fn init(cities: Vec<(f64, f64)>) -> Self {
+        Self::new(cities, Params::default())
     }
 
-    pub fn get(&self) -> (f64, &Vec<usize>) {
-        (self.length, &self.path)
+    fn state(&self) -> (f64, &Vec<usize>, String) {
+        (
+            self.length,
+            &self.path,
+            format!(
+                "S: {} C: {} T: {:.6}",
+                self.step, self.candidate, self.temperature
+            ),
+        )
     }
 
-    pub fn step(&mut self) -> bool {
+    fn step(&mut self) -> bool {
         let mut rng = rand::thread_rng();
 
-        // Check for stop conditions
-        if self.step > self.param.max_steps
-            || self.step - self.last_decrease > self.param.max_nodecrease
-        {
-            return true;
-        }
-        for _ in 0..self.param.candidates {
+        if self.candidate < self.param.candidates {
             // Apply a random action to the path
             let new_path = match rng.gen_range(0..=2) {
                 0 => swap_cities(&self.path),
@@ -127,9 +128,19 @@ impl Annealing {
                 self.length = new_length;
                 self.last_decrease = self.step;
             }
+            self.candidate += 1;
+        } else {
+            self.candidate = 0;
+            // Check for stop conditions
+            if self.step > self.param.max_steps
+                || self.step - self.last_decrease > self.param.max_nodecrease
+            {
+                return true;
+            } else {
+                self.temperature *= self.param.temp_mult; // Decrease temerature
+                self.step += 1;
+            }
         }
-        self.temperature *= self.param.temp_mult; // Decrease temerature
-        self.step += 1;
         false
     }
 }
