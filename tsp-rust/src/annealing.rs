@@ -1,11 +1,9 @@
-use core::fmt;
 use std::f64::consts;
-use std::io::Write;
 
 use crate::util;
 use rand::Rng;
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct Params {
     /// Multiplier of the temperature: usually between 0.9 and 0.999
     pub temp_mult: f64,
@@ -28,110 +26,112 @@ impl Default for Params {
     }
 }
 
-impl fmt::Debug for Params {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_fmt(format_args!(
-            "TM: {}\tM: {}\tD={}",
-            self.temp_mult, self.max_steps, self.max_nodecrease
-        ))
-    }
+pub struct Annealing {
+    param: Params,
+    distance: Vec<Vec<f64>>,
+    temperature: f64,
+    step: usize,
+    last_decrease: usize,
+    path: Vec<usize>,
+    length: f64,
 }
 
-pub fn user_input_params() -> Params {
-    fn read_number() -> f64 {
-        let mut inp = String::new();
-        std::io::stdin()
-            .read_line(&mut inp)
-            .expect("Input could not be read.");
-        let n: f64 = inp.trim().parse().expect("Expected a number");
-        n
-    }
-    let mut user_params = Params::default();
-    print!("Temperature multiplier after each step: ");
-    std::io::stdout().flush().unwrap();
-    user_params.temp_mult = read_number();
-    print!("Maximum number of steps: ");
-    std::io::stdout().flush().unwrap();
-    user_params.max_steps = read_number() as usize;
-    print!("Maximum number of iterations without decrease: ");
-    std::io::stdout().flush().unwrap();
-    user_params.max_nodecrease = read_number() as usize;
-    user_params
-}
+impl Annealing {
+    pub fn new(cities: Vec<(f64, f64)>, param: Params) -> Self {
+        let mut rng = rand::thread_rng();
 
-pub fn run_annealing(cities: Vec<(f64, f64)>, param: Params) -> (f64, Vec<usize>) {
-    let mut rng = rand::thread_rng();
-    let n = cities.len();
+        // Matrix of the squared distances between cities; size n*n
+        let mut distance: Vec<Vec<f64>> = vec![vec![-1.0; cities.len()]; cities.len()];
+        for i in 0..cities.len() {
+            for j in i..cities.len() {
+                distance[i][j] = util::dist(&cities[i], &cities[j]);
+                distance[j][i] = distance[i][j];
+            }
+        }
 
-    // Matrix of the squared distances between cities; size n*n
-    let mut distance: Vec<Vec<f64>> = vec![vec![-1.0; n]; n];
-    for i in 0..n {
-        for j in i..n {
-            distance[i][j] = util::dist(&cities[i], &cities[j]);
-            distance[j][i] = distance[i][j];
+        // Initialize a random path
+        let mut path: Vec<usize> = Vec::with_capacity(cities.len());
+        for i in 0..cities.len() {
+            let rand_index = rng.gen_range(0..path.len() + 1);
+            path.insert(rand_index, i)
+        }
+
+        let mut length = 0.0;
+        for i in 0..cities.len() {
+            length += distance[path[i]][path[(i + 1) % cities.len()]];
+        }
+
+        Self {
+            param,
+            distance,
+            temperature: 1.0,
+            step: 0,
+            last_decrease: 0,
+            path,
+            length,
         }
     }
 
-    // Initialize a random path
-    let mut path: Vec<usize> = Vec::with_capacity(n);
-    for i in 0..n {
-        let rand_index = rng.gen_range(0..path.len() + 1);
-        path.insert(rand_index, i)
+    pub fn run(mut self) -> (f64, Vec<usize>) {
+        loop {
+            if self.step() {
+                return (self.length, self.path);
+            }
+        }
     }
 
-    let mut start_dist = 0.0;
-    for i in 0..n {
-        start_dist += distance[path[i]][path[(i + 1) % n]];
+    pub fn get(&self) -> (f64, &Vec<usize>) {
+        (self.length, &self.path)
     }
 
-    let mut temperature = 1.0;
-    let mut i = 0;
-    let mut last_decrease = 0;
-    let mut curr_path = path;
-    let mut curr_dist = start_dist;
-    loop {
+    pub fn step(&mut self) -> bool {
+        let mut rng = rand::thread_rng();
+
         // Check for stop conditions
-        if i > param.max_steps || i - last_decrease > param.max_nodecrease {
-            break;
+        if self.step > self.param.max_steps
+            || self.step - self.last_decrease > self.param.max_nodecrease
+        {
+            return true;
         }
-        for _ in 0..param.candidates {
+        for _ in 0..self.param.candidates {
             // Apply a random action to the path
-            let new_path = match rng.gen_range(0..2) {
-                0 => swap_cities(&curr_path),
-                1 => invert_section(&curr_path),
-                2 => shift(&curr_path),
+            let new_path = match rng.gen_range(0..=2) {
+                0 => swap_cities(&self.path),
+                1 => invert_section(&self.path),
+                2 => shift(&self.path),
                 _ => panic!(),
             };
+
             // Calculate the distance of the new path
-            let mut new_dist = 0.0;
-            for i in 0..n {
+            let mut new_length = 0.0;
+            for i in 0..new_path.len() {
                 let x = new_path[i];
-                let y = new_path[(i + 1) % n];
-                new_dist += distance[x][y];
+                let y = new_path[(i + 1) % new_path.len()];
+                new_length += self.distance[x][y];
             }
 
             // Difference in energy level is the difference in distance
-            let delta_e = curr_dist - new_dist;
+            let delta_e = self.length - new_length;
             let accept = {
                 if delta_e >= 0.0 {
                     // Always accept a smaller paths with a lower energy level
                     true
                 } else {
                     // Only accept paths arbitrary according the probability formula
-                    let probability = consts::E.powf(delta_e / temperature);
+                    let probability = consts::E.powf(delta_e / self.temperature);
                     rng.gen_bool(probability)
                 }
             };
             if accept {
-                curr_path = new_path;
-                curr_dist = new_dist;
-                last_decrease = i;
+                self.path = new_path;
+                self.length = new_length;
+                self.last_decrease = self.step;
             }
         }
-        temperature *= param.temp_mult; // Decrease temerature
-        i += 1;
+        self.temperature *= self.param.temp_mult; // Decrease temerature
+        self.step += 1;
+        false
     }
-    return (curr_dist, curr_path);
 }
 
 // Generate two distinct random numbers
