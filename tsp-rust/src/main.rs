@@ -7,8 +7,6 @@ use rand::Rng;
 use std::env;
 use visualize::Visualizer;
 
-const MIN_CITIES: usize = 2; //minimum number of cities
-
 fn main() {
     if let Err(e) = run() {
         eprintln!("Error: {e}");
@@ -17,28 +15,19 @@ fn main() {
 
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 5 {
-        return Err(format!(
-            "You entered {} arguments. Please provide exactly 4!",
-            args.len() - 1
-        ));
-    }
-    let count: usize = args[3]
-        .parse()
-        .map_err(|e| format!("Please input a number has third argument: {e}"))?;
-    if count < MIN_CITIES {
-        return Err(format!(
-            "Please enter a city count of at least {}",
-            MIN_CITIES
-        ));
-    }
-    let area: f64 = args[4]
-        .parse()
-        .map_err(|e| format!("Please input a nmber has fourth argument: {e}"))?;
 
-    let cities = match args[2].trim().to_lowercase().as_str() {
-        "in" | "inp" | "input" => Ok(input_cities(count)?),
-        "rand" | "random" => Ok(random_cities(count, area)),
+    let area: f64 = args[2]
+        .parse()
+        .map_err(|e| format!("Please input an area has second argument: {e}"))?;
+
+    let cities = match args[3].trim().to_lowercase().as_str() {
+        "in" | "inp" | "input" => Ok(input_cities()?),
+        "rand" | "random" => {
+            let count = args[4]
+                .parse()
+                .map_err(|e| format!("Please input a city count as fourth argument: {e}"))?;
+            Ok(random_cities(count, area))
+        }
         _ => Err(format!("'{}' is no valid input mode!", args[2])),
     }?;
 
@@ -61,14 +50,16 @@ fn random_cities(count: usize, area: f64) -> Vec<(f64, f64)> {
     cities
 }
 
-fn input_cities(count: usize) -> Result<Vec<(f64, f64)>, String> {
-    let mut cities: Vec<(f64, f64)> = Vec::with_capacity(count);
+fn input_cities() -> Result<Vec<(f64, f64)>, String> {
+    let mut cities: Vec<(f64, f64)> = Vec::new();
 
     let mut input = String::new();
-    for i in 0..count {
-        println!("Enter x and y locations of city #{}", i);
+    loop {
         input.clear();
         std::io::stdin().read_line(&mut input).unwrap();
+        if input.is_empty() {
+            break;
+        }
         let pos: Vec<&str> = input.trim().split(' ').collect();
         if pos.len() < 2 {
             return Err("Please enter two values.".to_string());
@@ -81,6 +72,5 @@ fn input_cities(count: usize) -> Result<Vec<(f64, f64)>, String> {
             .map_err(|e| format!("Please enter a float: {e}"))?;
         cities.push((x, y));
     }
-    debug_assert!(cities.len() == count);
     Ok(cities)
 }
