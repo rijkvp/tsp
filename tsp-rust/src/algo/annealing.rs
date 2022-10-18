@@ -85,7 +85,7 @@ impl TspAlgorithm for Annealing {
             self.length,
             &self.path,
             format!(
-                "S: {} C: {} T: {:.6}",
+                "S={:<3} C={:<3}  T={:.5}",
                 self.step, self.candidate, self.temperature
             ),
         )

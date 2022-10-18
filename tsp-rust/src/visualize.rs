@@ -6,9 +6,12 @@ use speedy2d::{Graphics2D, Window};
 
 use crate::algo::TspAlgorithm;
 
-const PADDING: f32 = 26.0;
+const PADDING: f32 = 32.0;
+const FONT_SIZE: f32 = 24.0;
+const TEXT_PADDING: f32 = 4.0;
 
 pub struct Visualizer<T: TspAlgorithm> {
+    area: f32,
     cities: Vec<(f64, f64)>,
     path: Option<Vec<usize>>,
     state: T,
@@ -21,11 +24,12 @@ pub struct Visualizer<T: TspAlgorithm> {
 }
 
 impl<T: TspAlgorithm + 'static> Visualizer<T> {
-    pub fn new(cities: Vec<(f64, f64)>) -> Self {
+    pub fn new(cities: Vec<(f64, f64)>, area: f64) -> Self {
         let bytes = include_bytes!("../res/RobotoMono-Bold.ttf");
         let font = Font::new(bytes).unwrap();
         let state = T::init(cities.clone());
         Self {
+            area: area as f32,
             cities,
             path: None,
             state,
@@ -42,8 +46,8 @@ impl<T: TspAlgorithm + 'static> Visualizer<T> {
         let window = Window::new_centered(
             "Visualizer",
             (
-                (2.0 * PADDING as f64 + crate::AREA_SIZE) as u32,
-                (2.0 * PADDING as f64 + crate::AREA_SIZE) as u32,
+                (2.0 * PADDING + self.area) as u32,
+                (2.0 * PADDING + self.area) as u32,
             ),
         )
         .unwrap();
@@ -52,10 +56,10 @@ impl<T: TspAlgorithm + 'static> Visualizer<T> {
     }
 }
 
-fn transform_position(i: (f64, f64)) -> (f32, f32) {
+fn transform_position(i: (f64, f64), a: f32) -> (f32, f32) {
     (
-        PADDING + ((i.0 + crate::AREA_SIZE) / 2.0) as f32,
-        PADDING + ((i.1 + crate::AREA_SIZE) / 2.0) as f32,
+        PADDING + (i.0 as f32 + a / 2.0),
+        PADDING + (i.1 as f32 + a / 2.0),
     )
 }
 
@@ -78,10 +82,7 @@ impl<T: TspAlgorithm> WindowHandler for Visualizer<T> {
         graphics.draw_rectangle(
             Rectangle::from_tuples(
                 (0.0, 0.0),
-                (
-                    (crate::AREA_SIZE as f32 + 2.0 * PADDING),
-                    (crate::AREA_SIZE as f32 + 2.0 * PADDING),
-                ),
+                ((self.area + 2.0 * PADDING), (self.area + 2.0 * PADDING)),
             ),
             Color::from_gray(0.7),
         );
@@ -90,34 +91,58 @@ impl<T: TspAlgorithm> WindowHandler for Visualizer<T> {
                 let start = self.cities[path[i]];
                 let end = self.cities[path[(i + 1) % path.len()]];
                 graphics.draw_line(
-                    transform_position(start),
-                    transform_position(end),
+                    transform_position(start, self.area),
+                    transform_position(end, self.area),
                     2.0,
                     Color::DARK_GRAY,
                 );
             }
         }
         for (n, city) in self.cities.iter().enumerate() {
-            let pos = transform_position(*city);
+            let pos = transform_position(*city, self.area);
             graphics.draw_circle(pos, 5.0, Color::from_rgb(0.7, 0.2, 0.2));
             if self.show_numbers {
                 let block = self
                     .font
-                    .layout_text(&n.to_string(), 18.0, TextOptions::new());
-                graphics.draw_text((pos.0 - 9.0, pos.1 - 9.0), Color::BLACK, &block);
+                    .layout_text(&n.to_string(), FONT_SIZE, TextOptions::new());
+                graphics.draw_text(
+                    (pos.0 - block.width() / 2.0, pos.1 - FONT_SIZE),
+                    Color::BLACK,
+                    &block,
+                );
             }
         }
 
         let block = self
             .font
-            .layout_text(&self.status, 28.0, TextOptions::new());
-        graphics.draw_text((PADDING, 0.0), Color::BLACK, &block);
+            .layout_text(&self.status, FONT_SIZE, TextOptions::new());
+        graphics.draw_text(
+            (PADDING + self.area - block.width(), TEXT_PADDING),
+            Color::BLACK,
+            &block,
+        );
         let block = self.font.layout_text(
-            &format!("Length: {:.1}", self.length),
-            28.0,
+            &format!("Length={:.1}", self.length),
+            FONT_SIZE,
             TextOptions::new(),
         );
-        graphics.draw_text((PADDING, 500.0), Color::BLACK, &block);
+        graphics.draw_text((PADDING, TEXT_PADDING), Color::BLACK, &block);
+        let text = {
+            if self.running {
+                format!("Speed={}/f", self.steps_per_frame)
+            } else {
+                "Finished :)".to_string()
+            }
+        };
+        let block = self.font.layout_text(&text, FONT_SIZE, TextOptions::new());
+        graphics.draw_text(
+            (
+                PADDING,
+                PADDING * 2.0 + self.area - block.height() - TEXT_PADDING,
+            ),
+            Color::BLACK,
+            &block,
+        );
         if self.running {
             helper.request_redraw();
         }
@@ -125,13 +150,23 @@ impl<T: TspAlgorithm> WindowHandler for Visualizer<T> {
 
     fn on_key_down(
         &mut self,
-        helper: &mut WindowHelper,
+        _helper: &mut WindowHelper,
         key_code: Option<VirtualKeyCode>,
         _scancode: KeyScancode,
     ) {
-        if key_code == Some(VirtualKeyCode::N) {
-            self.show_numbers = !self.show_numbers;
-            helper.request_redraw();
+        if let Some(key_code) = key_code {
+            match key_code {
+                VirtualKeyCode::N => {
+                    self.show_numbers = !self.show_numbers;
+                }
+                VirtualKeyCode::F => {
+                    self.steps_per_frame *= 2;
+                }
+                VirtualKeyCode::S => {
+                    self.steps_per_frame /= 2;
+                }
+                _ => {}
+            }
         }
     }
 }

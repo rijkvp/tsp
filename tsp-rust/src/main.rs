@@ -8,7 +8,6 @@ use std::env;
 use visualize::Visualizer;
 
 const MIN_CITIES: usize = 2; //minimum number of cities
-pub const AREA_SIZE: f64 = 500.0;
 
 fn main() {
     if let Err(e) = run() {
@@ -18,9 +17,9 @@ fn main() {
 
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 4 {
+    if args.len() != 5 {
         return Err(format!(
-            "You entered {} arguments. Please provide exactly 3!",
+            "You entered {} arguments. Please provide exactly 4!",
             args.len() - 1
         ));
     }
@@ -33,26 +32,30 @@ fn run() -> Result<(), String> {
             MIN_CITIES
         ));
     }
+    let area: f64 = args[4]
+        .parse()
+        .map_err(|e| format!("Please input a nmber has fourth argument: {e}"))?;
+
     let cities = match args[2].trim().to_lowercase().as_str() {
         "in" | "inp" | "input" => Ok(input_cities(count)?),
-        "rand" | "random" => Ok(random_cities(count)),
+        "rand" | "random" => Ok(random_cities(count, area)),
         _ => Err(format!("'{}' is no valid input mode!", args[2])),
     }?;
 
     match args[1].trim().to_lowercase().as_str() {
-        "an" | "annealing" => Visualizer::<Annealing>::new(cities).run(),
-        "bf" | "brute-force" => Visualizer::<BruteForce>::new(cities).run(),
+        "an" | "annealing" => Visualizer::<Annealing>::new(cities, area).run(),
+        "bf" | "brute-force" => Visualizer::<BruteForce>::new(cities, area).run(),
         _ => return Err(format!("'{}' is no valid algorithm!", args[1])),
     };
     Ok(())
 }
 
-fn random_cities(count: usize) -> Vec<(f64, f64)> {
+fn random_cities(count: usize, area: f64) -> Vec<(f64, f64)> {
     let mut cities: Vec<(f64, f64)> = Vec::with_capacity(count);
     let mut rng = rand::thread_rng();
     for _ in 0..count {
-        let x = rng.gen_range(-AREA_SIZE..AREA_SIZE);
-        let y = rng.gen_range(-AREA_SIZE..AREA_SIZE);
+        let x = rng.gen_range(-area / 2.0..area / 2.0);
+        let y = rng.gen_range(-area / 2.0..area / 2.0);
         cities.push((x, y));
     }
     cities
