@@ -7,47 +7,45 @@ use algo::{annealing::Annealing, brute_force::BruteForce};
 use rand::Rng;
 use std::env;
 
+const AREA_SIZE: f64 = 500.0;
+
+enum Algorithm {
+    Annealing,
+    BruteForce,
+}
+
 fn main() {
     if let Err(e) = run() {
         eprintln!("Error: {e}");
     }
 }
 
-enum AlgoSelection {
-    Annealing,
-    BruteForce,
-}
-
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
 
-    if args.len() < 4 {
-        return Err(format!("Please enter at least 3 arguements!"));
+    if args.len() < 3 {
+        return Err(format!("Please enter at least 2 arguements!"));
     }
     let algo_selection = match args[1].trim().to_lowercase().as_str() {
-        "an" | "annealing" => AlgoSelection::Annealing,
-        "bf" | "brute-force" => AlgoSelection::BruteForce,
+        "an" | "annealing" => Algorithm::Annealing,
+        "bf" | "brute-force" => Algorithm::BruteForce,
          _ => return Err(format!("'{}' is not a valid algorithm: please choose between annealing (an) and brute-force (bf).", args[1])),
     };
 
-    let area: f64 = args[2]
-        .parse()
-        .map_err(|e| format!("Please input an area has second argument: {e}"))?;
-
-    let cities = match args[3].trim().to_lowercase().as_str() {
+    let cities = match args[2].trim().to_lowercase().as_str() {
         "in" | "inp" | "input" => Ok(input_cities()?),
         "rand" | "random" => {
-            let count_input = args.get(4).ok_or(format!(
-                "Please enter a random city count as fourth argument!"
+            let count_input = args.get(3).ok_or(format!(
+                "Please provide a amount of random cities as the third argument!"
             ))?;
             let count = count_input.parse().map_err(|e| {
                 format!("Please input a valid city count number as fourth argument: {e}")
             })?;
-            Ok(random_cities(count, area))
+            Ok(random_cities(count, AREA_SIZE))
         }
         _ => Err(format!(
             "'{}' is no valid input mode: please chooese between: random [count] or input.",
-            args[3]
+            args[2]
         )),
     }?;
 
@@ -55,21 +53,21 @@ fn run() -> Result<(), String> {
     {
         use crate::visualize::Visualizer;
         if args
-            .get(5)
-            .map(|s| s.to_lowercase().starts_with("vis"))
+            .get(4)
+            .map(|s| s.to_lowercase().starts_with("v"))
             .unwrap_or(false)
         {
             match algo_selection {
-                AlgoSelection::Annealing => Visualizer::<Annealing>::new(cities, area).run(),
-                AlgoSelection::BruteForce => Visualizer::<BruteForce>::new(cities, area).run(),
+                Algorithm::Annealing => Visualizer::<Annealing>::new(cities, AREA_SIZE).run(),
+                Algorithm::BruteForce => Visualizer::<BruteForce>::new(cities, AREA_SIZE).run(),
             }
             return Ok(());
         }
     }
 
     let state = match algo_selection {
-        AlgoSelection::Annealing => algo::run::<Annealing>(cities),
-        AlgoSelection::BruteForce => algo::run::<BruteForce>(cities),
+        Algorithm::Annealing => algo::run::<Annealing>(cities),
+        Algorithm::BruteForce => algo::run::<BruteForce>(cities),
     };
     println!("Length: {:.2}, Path: {:?}", state.length, state.path);
 
