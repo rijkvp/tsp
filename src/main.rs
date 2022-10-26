@@ -16,6 +16,10 @@ fn main() {
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
 
+    if args.len() < 4 || args.len() > 5 {
+        return Err(format!("Please enter 3-4 arguements!"));
+    }
+
     let area: f64 = args[2]
         .parse()
         .map_err(|e| format!("Please input an area has second argument: {e}"))?;
@@ -23,18 +27,24 @@ fn run() -> Result<(), String> {
     let cities = match args[3].trim().to_lowercase().as_str() {
         "in" | "inp" | "input" => Ok(input_cities()?),
         "rand" | "random" => {
-            let count = args[4]
-                .parse()
-                .map_err(|e| format!("Please input a city count as fourth argument: {e}"))?;
+            let count_input = args.get(4).ok_or(format!(
+                "Please enter a random city count as fourth argument!"
+            ))?;
+            let count = count_input.parse().map_err(|e| {
+                format!("Please input a valid city count number as fourth argument: {e}")
+            })?;
             Ok(random_cities(count, area))
         }
-        _ => Err(format!("'{}' is no valid input mode!", args[2])),
+        _ => Err(format!(
+            "'{}' is no valid input mode: please chooese between: random [count] or input.",
+            args[3]
+        )),
     }?;
 
     match args[1].trim().to_lowercase().as_str() {
         "an" | "annealing" => Visualizer::<Annealing>::new(cities, area).run(),
         "bf" | "brute-force" => Visualizer::<BruteForce>::new(cities, area).run(),
-        _ => return Err(format!("'{}' is no valid algorithm!", args[1])),
+        _ => return Err(format!("'{}' is not a valid algorithm: please choose between annealing (an) and brute-force (bf).", args[1])),
     };
     Ok(())
 }
