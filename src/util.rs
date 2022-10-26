@@ -7,9 +7,7 @@ pub fn dist(a: &(f64, f64), b: &(f64, f64)) -> f64 {
 
 /// Swaps two elements of in an array
 pub fn swap(arr: &mut [usize], x: usize, y: usize) {
-    let h = arr[x];
-    arr[x] = arr[y];
-    arr[y] = h;
+    arr.swap(x, y);
 }
 
 /// Returns a new vector with all elements circularly shifted to the right

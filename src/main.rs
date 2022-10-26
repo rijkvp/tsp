@@ -17,7 +17,7 @@ fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 4 || args.len() > 5 {
-        return Err(format!("Please enter 3-4 arguements!"));
+        return Err("Please enter 3-4 arguements!".to_string());
     }
 
     let area: f64 = args[2]
@@ -27,9 +27,7 @@ fn run() -> Result<(), String> {
     let cities = match args[3].trim().to_lowercase().as_str() {
         "in" | "inp" | "input" => Ok(input_cities()?),
         "rand" | "random" => {
-            let count_input = args.get(4).ok_or(format!(
-                "Please enter a random city count as fourth argument!"
-            ))?;
+            let count_input = args.get(4).ok_or("Please enter a random city count as fourth argument!".to_string())?;
             let count = count_input.parse().map_err(|e| {
                 format!("Please input a valid city count number as fourth argument: {e}")
             })?;

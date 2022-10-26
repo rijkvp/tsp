@@ -40,7 +40,7 @@ impl TspAlgorithm for BruteForce {
             self.length = new_length;
             self.path = self.perm.clone();
         }
-        return false;
+        false
     }
 }
 
@@ -71,9 +71,7 @@ fn next_permutation(perm: &mut Vec<usize>) -> bool {
             }
         }
         // Swap k and l
-        let h = perm[k];
-        perm[k] = perm[l];
-        perm[l] = h;
+        perm.swap(k, l);
         // Reverse k+1 till end
         perm[k + 1..len].reverse();
         return true;
