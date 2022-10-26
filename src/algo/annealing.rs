@@ -1,10 +1,12 @@
-use super::TspAlgorithm;
+use super::{TspAlgorithm, TspState};
 use crate::util;
 use rand::Rng;
 use std::f64::consts;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Params {
+    /// Starting temperature
+    pub start_temp: f64,
     /// Multiplier of the temperature: usually between 0.9 and 0.999
     pub temp_mult: f64,
     /// Maximum steps
@@ -18,9 +20,10 @@ pub struct Params {
 impl Default for Params {
     fn default() -> Self {
         Self {
+            start_temp: 30.0,
             temp_mult: 0.95,
-            candidates: 500,
-            max_steps: 500,
+            candidates: 200,
+            max_steps: 200,
             max_nodecrease: 50,
         }
     }
@@ -34,6 +37,7 @@ pub struct Annealing {
     candidate: usize,
     last_decrease: usize,
     path: Vec<usize>,
+    sample: Vec<usize>,
     length: f64,
 }
 
@@ -65,10 +69,11 @@ impl Annealing {
         Self {
             param,
             distance,
-            temperature: 1.0,
+            temperature: param.start_temp,
             step: 0,
             candidate: 0,
             last_decrease: 0,
+            sample: path.clone(),
             path,
             length,
         }
@@ -80,15 +85,16 @@ impl TspAlgorithm for Annealing {
         Self::new(cities, Params::default())
     }
 
-    fn state(&self) -> (f64, &Vec<usize>, String) {
-        (
-            self.length,
-            &self.path,
-            format!(
-                "S={:<3} C={:<3}  T={:.5}",
+    fn state(&self) -> TspState {
+        TspState {
+            length: self.length,
+            path: self.path.clone(),
+            sample: self.sample.clone(),
+            status: format!(
+                "S={:<3} C={:<3}  T={:.3}",
                 self.step, self.candidate, self.temperature
             ),
-        )
+        }
     }
 
     fn step(&mut self) -> bool {
@@ -96,7 +102,7 @@ impl TspAlgorithm for Annealing {
 
         if self.candidate < self.param.candidates {
             // Apply a random action to the path
-            let new_path = match rng.gen_range(0..=2) {
+            self.sample = match rng.gen_range(0..=2) {
                 0 => swap_cities(&self.path),
                 1 => invert_section(&self.path),
                 2 => shift(&self.path),
@@ -105,9 +111,9 @@ impl TspAlgorithm for Annealing {
 
             // Calculate the distance of the new path
             let mut new_length = 0.0;
-            for i in 0..new_path.len() {
-                let x = new_path[i];
-                let y = new_path[(i + 1) % new_path.len()];
+            for i in 0..self.sample.len() {
+                let x = self.sample[i];
+                let y = self.sample[(i + 1) % self.sample.len()];
                 new_length += self.distance[x][y];
             }
 
@@ -124,7 +130,7 @@ impl TspAlgorithm for Annealing {
                 }
             };
             if accept {
-                self.path = new_path;
+                self.path = self.sample.clone();
                 self.length = new_length;
                 self.last_decrease = self.step;
             }

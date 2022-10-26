@@ -1,4 +1,4 @@
-use super::TspAlgorithm;
+use super::{TspAlgorithm, TspState};
 use crate::util;
 
 pub struct BruteForce {
@@ -6,26 +6,28 @@ pub struct BruteForce {
     perm: Vec<usize>,
     p_count: usize,
     length: f64,
-    path: Option<Vec<usize>>,
+    path: Vec<usize>,
 }
 
 impl TspAlgorithm for BruteForce {
     fn init(cities: Vec<(f64, f64)>) -> BruteForce {
+        let path = (0..cities.len()).collect();
         Self {
-            perm: (0..cities.len()).collect(),
+            length: calculate_length(&cities, &path),
+            perm: path.clone(),
+            path,
             cities,
             p_count: 0,
-            length: f64::MAX,
-            path: None,
         }
     }
 
-    fn state(&self) -> (f64, &Vec<usize>, String) {
-        (
-            self.length,
-            self.path.as_ref().unwrap(),
-            format!("P: {}", self.p_count),
-        )
+    fn state(&self) -> TspState {
+        TspState {
+            length: self.length,
+            path: self.path.clone(),
+            sample: self.perm.clone(),
+            status: format!("P: {}", self.p_count),
+        }
     }
 
     fn step(&mut self) -> bool {
@@ -33,18 +35,23 @@ impl TspAlgorithm for BruteForce {
             return true;
         }
         self.p_count += 1;
-        let mut new_length = 0.0;
-        for i in 0..self.perm.len() {
-            let x = self.cities[self.perm[i]];
-            let y = self.cities[self.perm[(i + 1) % self.perm.len()]];
-            new_length += util::dist(&x, &y);
-        }
+        let new_length = calculate_length(&self.cities, &self.path);
         if new_length < self.length {
             self.length = new_length;
-            self.path = Some(self.perm.clone());
+            self.path = self.perm.clone();
         }
         return false;
     }
+}
+
+fn calculate_length(cities: &Vec<(f64, f64)>, path: &Vec<usize>) -> f64 {
+    let mut length = 0.0;
+    for i in 0..path.len() {
+        let x = cities[path[i]];
+        let y = cities[path[(i + 1) % path.len()]];
+        length += util::dist(&x, &y);
+    }
+    length
 }
 
 // Lexicographic permutation algorithm: https://en.wikipedia.org/wiki/Permutation#Generation_in_lexicographic_order
