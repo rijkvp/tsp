@@ -1,11 +1,11 @@
 mod algo;
 mod util;
+#[cfg(feature = "visualize")]
 mod visualize;
 
 use algo::{annealing::Annealing, brute_force::BruteForce};
 use rand::Rng;
 use std::env;
-use visualize::Visualizer;
 
 fn main() {
     if let Err(e) = run() {
@@ -13,12 +13,22 @@ fn main() {
     }
 }
 
+enum AlgoSelection {
+    Annealing,
+    BruteForce,
+}
+
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
 
-    if args.len() < 4 || args.len() > 5 {
-        return Err("Please enter 3-4 arguements!".to_string());
+    if args.len() < 4 {
+        return Err(format!("Please enter at least 3 arguements!"));
     }
+    let algo_selection = match args[1].trim().to_lowercase().as_str() {
+        "an" | "annealing" => AlgoSelection::Annealing,
+        "bf" | "brute-force" => AlgoSelection::BruteForce,
+         _ => return Err(format!("'{}' is not a valid algorithm: please choose between annealing (an) and brute-force (bf).", args[1])),
+    };
 
     let area: f64 = args[2]
         .parse()
@@ -27,7 +37,9 @@ fn run() -> Result<(), String> {
     let cities = match args[3].trim().to_lowercase().as_str() {
         "in" | "inp" | "input" => Ok(input_cities()?),
         "rand" | "random" => {
-            let count_input = args.get(4).ok_or("Please enter a random city count as fourth argument!".to_string())?;
+            let count_input = args.get(4).ok_or(format!(
+                "Please enter a random city count as fourth argument!"
+            ))?;
             let count = count_input.parse().map_err(|e| {
                 format!("Please input a valid city count number as fourth argument: {e}")
             })?;
@@ -39,11 +51,28 @@ fn run() -> Result<(), String> {
         )),
     }?;
 
-    match args[1].trim().to_lowercase().as_str() {
-        "an" | "annealing" => Visualizer::<Annealing>::new(cities, area).run(),
-        "bf" | "brute-force" => Visualizer::<BruteForce>::new(cities, area).run(),
-        _ => return Err(format!("'{}' is not a valid algorithm: please choose between annealing (an) and brute-force (bf).", args[1])),
+    #[cfg(feature = "visualize")]
+    {
+        use crate::visualize::Visualizer;
+        if args
+            .get(5)
+            .map(|s| s.to_lowercase().starts_with("vis"))
+            .unwrap_or(false)
+        {
+            match algo_selection {
+                AlgoSelection::Annealing => Visualizer::<Annealing>::new(cities, area).run(),
+                AlgoSelection::BruteForce => Visualizer::<BruteForce>::new(cities, area).run(),
+            }
+            return Ok(());
+        }
+    }
+
+    let state = match algo_selection {
+        AlgoSelection::Annealing => algo::run::<Annealing>(cities),
+        AlgoSelection::BruteForce => algo::run::<BruteForce>(cities),
     };
+    println!("Length: {:.2}, Path: {:?}", state.length, state.path);
+
     Ok(())
 }
 

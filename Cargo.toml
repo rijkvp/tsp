@@ -9,6 +9,9 @@ strip = true
 codegen-units = 1
 opt-level = 3
 
+[features]
+visualize = ["speedy2d"]
+
 [dependencies]
 rand = "0.8"
-speedy2d = "1.8"
+speedy2d = { version = "1.8", optional = true }

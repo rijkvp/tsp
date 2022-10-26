@@ -13,3 +13,9 @@ pub trait TspAlgorithm {
     fn step(&mut self) -> bool;
     fn state(&self) -> TspState;
 }
+
+pub fn run<T: TspAlgorithm>(cities: Vec<(f64, f64)>) -> TspState {
+    let mut algo = T::init(cities);
+    while !algo.step() {}
+    algo.state()
+}
