@@ -34,7 +34,9 @@ fn run() -> Result<(), String> {
     let cities = match args[2].trim().to_lowercase().as_str() {
         "in" | "inp" | "input" => Ok(input_cities()?),
         "rand" | "random" => {
-            let count_input = args.get(3).ok_or("Please provide a amount of random cities as the third argument!".to_string())?;
+            let count_input = args.get(3).ok_or(
+                "Please provide a amount of random cities as the third argument!".to_string(),
+            )?;
             let count = count_input.parse().map_err(|e| {
                 format!("Please input a valid city count number as fourth argument: {e}")
             })?;
@@ -69,8 +71,18 @@ fn run() -> Result<(), String> {
         Algorithm::Annealing => algo::run::<Annealing>(cities),
         Algorithm::BruteForce => algo::run::<BruteForce>(cities),
     };
-    println!("Length: {:.2}, Path: {:?}", state.length, state.path);
-
+    // Print length
+    println!("{:.4}", state.length);
+    // Print path seperated by ','s
+    println!(
+        "{}",
+        state
+            .path
+            .into_iter()
+            .map(|i| i.to_string())
+            .collect::<Vec<String>>()
+            .join(",")
+    );
     Ok(())
 }
 
