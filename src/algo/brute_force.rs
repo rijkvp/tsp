@@ -4,7 +4,8 @@ use crate::util;
 pub struct BruteForce {
     cities: Vec<(f64, f64)>,
     perm: Vec<usize>,
-    p_count: usize,
+    p_count: u128,
+    max: u128,
     length: f64,
     path: Vec<usize>,
 }
@@ -12,21 +13,24 @@ pub struct BruteForce {
 impl TspAlgorithm for BruteForce {
     fn init(cities: Vec<(f64, f64)>) -> BruteForce {
         let path = (0..cities.len()).collect();
+        let max = factorial(cities.len() as u128);
         Self {
             length: calculate_length(&cities, &path),
             perm: path.clone(),
             path,
             cities,
             p_count: 0,
+            max,
         }
     }
 
     fn state(&self) -> TspState {
+        let p = self.p_count * 100 / self.max;
         TspState {
             length: self.length,
             path: self.path.clone(),
             sample: self.perm.clone(),
-            status: format!("P: {}", self.p_count),
+            status: format!("P: {} {}%", self.p_count, p),
         }
     }
 
@@ -35,13 +39,17 @@ impl TspAlgorithm for BruteForce {
             return true;
         }
         self.p_count += 1;
-        let new_length = calculate_length(&self.cities, &self.path);
+        let new_length = calculate_length(&self.cities, &self.perm);
         if new_length < self.length {
             self.length = new_length;
             self.path = self.perm.clone();
         }
         false
     }
+}
+
+fn factorial(n: u128) -> u128 {
+    (1..=n).product()
 }
 
 fn calculate_length(cities: &Vec<(f64, f64)>, path: &Vec<usize>) -> f64 {

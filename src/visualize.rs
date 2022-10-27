@@ -15,6 +15,7 @@ pub struct Visualizer<T: TspAlgorithm> {
     cities: Vec<(f64, f64)>,
     algo: T,
     state: Option<TspState>,
+    paused: bool,
     running: bool,
     steps_per_frame: usize,
     show_numbers: bool,
@@ -32,6 +33,7 @@ impl<T: TspAlgorithm + 'static> Visualizer<T> {
             cities,
             state: None,
             algo,
+            paused: true,
             running: true,
             steps_per_frame: 10,
             show_numbers: false,
@@ -63,7 +65,7 @@ fn transform_position(i: (f64, f64), a: f32) -> (f32, f32) {
 
 impl<T: TspAlgorithm> WindowHandler for Visualizer<T> {
     fn on_draw(&mut self, helper: &mut WindowHelper, graphics: &mut Graphics2D) {
-        if self.running {
+        if self.running && !self.paused {
             for _ in 0..self.steps_per_frame {
                 if self.algo.step() {
                     self.running = false;
@@ -135,10 +137,12 @@ impl<T: TspAlgorithm> WindowHandler for Visualizer<T> {
         }
 
         let text = {
-            if self.running {
+            if !self.running {
+                "Finished :)".to_string()
+            } else if !self.paused {
                 format!("Speed={}/f", self.steps_per_frame)
             } else {
-                "Finished :)".to_string()
+                "Paused (press space to start)".to_string()
             }
         };
         let block = self.font.layout_text(&text, FONT_SIZE, TextOptions::new());
@@ -150,9 +154,7 @@ impl<T: TspAlgorithm> WindowHandler for Visualizer<T> {
             Color::BLACK,
             &block,
         );
-        if self.running {
-            helper.request_redraw();
-        }
+        helper.request_redraw();
     }
 
     fn on_key_down(
@@ -163,9 +165,10 @@ impl<T: TspAlgorithm> WindowHandler for Visualizer<T> {
     ) {
         if let Some(key_code) = key_code {
             match key_code {
+                VirtualKeyCode::Space => self.paused = !self.paused,
                 VirtualKeyCode::N => self.show_numbers = !self.show_numbers,
                 VirtualKeyCode::F => self.steps_per_frame *= 2,
-                VirtualKeyCode::S => self.steps_per_frame /= 2,
+                VirtualKeyCode::S => self.steps_per_frame = (self.steps_per_frame / 2).max(1),
                 VirtualKeyCode::P => self.show_samples = !self.show_samples,
                 _ => {}
             }
