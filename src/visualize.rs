@@ -35,7 +35,7 @@ impl<T: TspAlgorithm + 'static> Visualizer<T> {
             algo,
             paused: true,
             running: true,
-            steps_per_frame: 10,
+            steps_per_frame: 8,
             show_numbers: false,
             show_samples: false,
             font,

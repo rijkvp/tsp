@@ -41,6 +41,9 @@ fn run() -> Result<(), String> {
             let count = count_input.parse().map_err(|e| {
                 format!("Please input a valid city count number as fourth argument: {e}")
             })?;
+            if count < 2 {
+                return Err("Please enter a count of at least 2 cities!".to_string());
+            }
             Ok(random_cities(count, AREA_SIZE))
         }
         _ => Err(format!(
@@ -53,7 +56,7 @@ fn run() -> Result<(), String> {
     {
         use crate::visualize::Visualizer;
         if args
-            .get(4)
+            .get(args.len() - 1)
             .map(|s| s.to_lowercase().starts_with("v"))
             .unwrap_or(false)
         {
