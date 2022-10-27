@@ -1,5 +1,4 @@
 use super::{TspAlgorithm, TspState};
-use crate::util;
 
 pub struct BruteForce {
     cities: Vec<(f64, f64)>,
@@ -52,14 +51,22 @@ fn factorial(n: u128) -> u128 {
     (1..=n).product()
 }
 
+// Calculates the length of a path
 fn calculate_length(cities: &Vec<(f64, f64)>, path: &Vec<usize>) -> f64 {
     let mut length = 0.0;
     for i in 0..path.len() {
         let x = cities[path[i]];
         let y = cities[path[(i + 1) % path.len()]];
-        length += util::dist(&x, &y);
+        length += dist(&x, &y);
     }
     length
+}
+
+// Calculates the distance between two points
+fn dist(a: &(f64, f64), b: &(f64, f64)) -> f64 {
+    let dx = b.0 - a.0;
+    let dy = b.1 - a.1;
+    (dx * dx + dy * dy).sqrt()
 }
 
 // Lexicographic permutation algorithm: https://en.wikipedia.org/wiki/Permutation#Generation_in_lexicographic_order

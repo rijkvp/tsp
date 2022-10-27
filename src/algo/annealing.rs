@@ -1,22 +1,22 @@
 use super::{TspAlgorithm, TspState};
-use crate::util;
 use rand::Rng;
 use std::f64::consts;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Params {
-    /// Starting temperature
-    pub start_temp: f64,
-    /// Multiplier of the temperature: usually between 0.9 and 0.999
-    pub temp_mult: f64,
-    /// Maximum steps
-    pub max_steps: usize,
-    /// How many candidates to pick each step
-    pub candidates: usize,
+    // Starting temperature
+    start_temp: f64,
+    // Multiplier of the temperature: usually between 0.9 and 0.999
+    temp_mult: f64,
+    // Maximum steps
+    max_steps: usize,
+    // How many candidates to pick each step
+    candidates: usize,
     // Maximum steps without energy decrease before stopping
-    pub max_nodecrease: usize,
+    max_nodecrease: usize,
 }
 
+// The default parameters of the annealing algorithm
 impl Default for Params {
     fn default() -> Self {
         Self {
@@ -49,7 +49,7 @@ impl Annealing {
         let mut distance: Vec<Vec<f64>> = vec![vec![-1.0; cities.len()]; cities.len()];
         for i in 0..cities.len() {
             for j in i..cities.len() {
-                distance[i][j] = util::dist(&cities[i], &cities[j]);
+                distance[i][j] = dist(&cities[i], &cities[j]);
                 distance[j][i] = distance[i][j];
             }
         }
@@ -151,6 +151,13 @@ impl TspAlgorithm for Annealing {
     }
 }
 
+// Calculates the distance between two points
+fn dist(a: &(f64, f64), b: &(f64, f64)) -> f64 {
+    let dx = b.0 - a.0;
+    let dy = b.1 - a.1;
+    (dx * dx + dy * dy).sqrt()
+}
+
 // Generate two distinct random numbers
 fn distinct_indicies(max: usize) -> (usize, usize) {
     let mut rng = rand::thread_rng();
@@ -166,7 +173,7 @@ fn distinct_indicies(max: usize) -> (usize, usize) {
 fn swap_cities(path: &[usize]) -> Vec<usize> {
     let mut res = Vec::from(path);
     let (x, y) = distinct_indicies(path.len());
-    util::swap(&mut res, x, y);
+    res.swap(x, y);
     res
 }
 
@@ -189,8 +196,28 @@ fn invert_section(path: &[usize]) -> Vec<usize> {
 fn shift(path: &[usize]) -> Vec<usize> {
     let mut rng = rand::thread_rng();
     if rng.gen_bool(0.5) {
-        util::shift_right(path)
+        shift_right(path)
     } else {
-        util::shift_left(path)
+        shift_left(path)
     }
+}
+
+// Returns a new vector with all elements circularly shifted to the right
+fn shift_right(arr: &[usize]) -> Vec<usize> {
+    let mut res = Vec::with_capacity(arr.len());
+    res.push(arr[arr.len() - 1]);
+    for i in 0..arr.len() - 1 {
+        res.push(arr[i]);
+    }
+    res
+}
+
+// Returns a new vector with all elements circularly shifted to the left
+fn shift_left(arr: &[usize]) -> Vec<usize> {
+    let mut res = Vec::with_capacity(arr.len());
+    for i in 1..arr.len() {
+        res.push(arr[i]);
+    }
+    res.push(arr[0]);
+    res
 }

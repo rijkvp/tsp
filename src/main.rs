@@ -1,5 +1,4 @@
 mod algo;
-mod util;
 #[cfg(feature = "visualize")]
 mod visualize;
 
@@ -24,7 +23,7 @@ fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 3 {
-        return Err(format!("Please enter at least 2 arguements!"));
+        return Err("Please enter at least 2 arguements!".to_string());
     }
     let algo_selection = match args[1].trim().to_lowercase().as_str() {
         "an" | "annealing" => Algorithm::Annealing,
@@ -35,9 +34,7 @@ fn run() -> Result<(), String> {
     let cities = match args[2].trim().to_lowercase().as_str() {
         "in" | "inp" | "input" => Ok(input_cities()?),
         "rand" | "random" => {
-            let count_input = args.get(3).ok_or(format!(
-                "Please provide a amount of random cities as the third argument!"
-            ))?;
+            let count_input = args.get(3).ok_or("Please provide a amount of random cities as the third argument!".to_string())?;
             let count = count_input.parse().map_err(|e| {
                 format!("Please input a valid city count number as fourth argument: {e}")
             })?;
