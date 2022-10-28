@@ -71,14 +71,29 @@ fn run() -> Result<(), String> {
         Algorithm::Annealing => algo::run::<Annealing>(cities),
         Algorithm::BruteForce => algo::run::<BruteForce>(cities),
     };
+
+    // Reorder the path so it always starts with index 0
+    let zero_index = state.path.iter().position(|i| *i == 0).unwrap();
+    let (part1, part2) = state.path.split_at(zero_index);
+    let mut path = [part2, part1].concat();
+
+    // The path can be in two orders: (clockwise or counter-clockwise)
+    // Pick the order that is the lowest index after the zero
+    let left = state.path[(((zero_index as isize - 1) + (state.path.len() as isize))
+        % (state.path.len() as isize)) as usize];
+    let right = state.path[((zero_index + 1) % state.path.len())];
+    if left < right {
+        path.reverse();
+        let last = path.pop().unwrap();
+        path.insert(0, last);
+    }
+
     // Print length
     println!("{:.4}", state.length);
-    // Print path seperated by ','s
+    // Print path seperated by commas
     println!(
         "{}",
-        state
-            .path
-            .into_iter()
+        path.iter()
             .map(|i| i.to_string())
             .collect::<Vec<String>>()
             .join(",")
