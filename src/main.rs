@@ -78,11 +78,8 @@ fn run() -> Result<(), String> {
     let mut path = [part2, part1].concat();
 
     // The path can be in two orders: (clockwise or counter-clockwise)
-    // Pick the order that is the lowest index after the zero
-    let left = state.path[(((zero_index as isize - 1) + (state.path.len() as isize))
-        % (state.path.len() as isize)) as usize];
-    let right = state.path[((zero_index + 1) % state.path.len())];
-    if left < right {
+    // Pick the order that goes first in the lowest index after the zero
+    if path[path.len() - 1] < path[1] {
         path.reverse();
         let last = path.pop().unwrap();
         path.insert(0, last);
