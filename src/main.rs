@@ -38,7 +38,7 @@ fn run() -> Result<(), String> {
                 "Please provide a amount of random cities as the third argument!".to_string(),
             )?;
             let count = count_input.parse().map_err(|e| {
-                format!("Please input a valid city count number as fourth argument: {e}")
+                format!("Please input a valid city count number as third argument: {e}")
             })?;
             if count < 2 {
                 return Err("Please enter a count of at least 2 cities!".to_string());
