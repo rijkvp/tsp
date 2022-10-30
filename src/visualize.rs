@@ -167,8 +167,8 @@ impl<T: TspAlgorithm> WindowHandler for Visualizer<T> {
             match key_code {
                 VirtualKeyCode::Space => self.paused = !self.paused,
                 VirtualKeyCode::N => self.show_numbers = !self.show_numbers,
-                VirtualKeyCode::F => self.steps_per_frame *= 2,
-                VirtualKeyCode::S => self.steps_per_frame = (self.steps_per_frame / 2).max(1),
+                VirtualKeyCode::F => self.steps_per_frame = (2*self.steps_per_frame).min(2048),
+                VirtualKeyCode::S => self.steps_per_frame = (self.steps_per_frame/2).max(1),
                 VirtualKeyCode::P => self.show_samples = !self.show_samples,
                 _ => {}
             }
