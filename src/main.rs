@@ -23,7 +23,7 @@ fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 3 {
-        return Err("Please enter at least 2 arguements!".to_string());
+        return Err("Please enter at least 2 arguments!".to_string());
     }
     let algo_selection = match args[1].trim().to_lowercase().as_str() {
         "an" | "annealing" => Algorithm::Annealing,
