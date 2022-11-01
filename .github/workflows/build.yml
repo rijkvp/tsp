@@ -1,0 +1,47 @@
+name: Development build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  dev_build:
+    name: "Development build"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          target: x86_64-unknown-linux-gnu
+          toolchain: stable
+          profile: minimal
+
+      - name: Release build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --all-features
+
+      - name: Uppload release artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: tsp
+          path: ${{ GITHUB_WORKSPACE }}/target/release/tsp
+  dev_release:
+    name: Development release
+    needs: dev_build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+      - name: Create development release
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          title: "Development build"
+          files: "./**/*"
+
