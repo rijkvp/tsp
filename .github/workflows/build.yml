@@ -30,7 +30,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: tsp
-          path: ${{ GITHUB_WORKSPACE }}/target/release/tsp
+          path: ./target/release/tsp
   dev_release:
     name: Development release
     needs: dev_build
