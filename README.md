@@ -1,4 +1,5 @@
 # Traveling Salesman Problem
+[![Development build](https://github.com/rijkvp/tsp/actions/workflows/build.yml/badge.svg)](https://github.com/rijkvp/tsp/actions/workflows/build.yml)
 
 A Traveling Salesman Problem appoximation with simulated annealing.
 
